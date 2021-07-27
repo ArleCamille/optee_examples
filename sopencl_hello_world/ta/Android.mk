@@ -1,4 +1,4 @@
 LOCAL_PATH := $(call my-dir)
 
-local_module := 2a287631-de1b-4fdd-a55c-b9312e40769a.ta
+local_module := 0183a595-0fd1-4037-82b0-1fc25c647744.ta
 include $(BUILD_OPTEE_MK)
