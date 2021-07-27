@@ -18,7 +18,7 @@ include $(BUILD_EXECUTABLE)
 ###################### optee-plugins libs #################
 include $(CLEAR_VARS)
 
-PLUGIN_UUID = 96bcf744-4f72-4866-bf1d-8634fd9c65e5
+PLUGIN_UUID = 693a5d5a-0f1c-4ecf-a617-05804d5c9b0b
 
 PLUGIN                  = $(PLUGIN_UUID).plugin
 PLUGIN_INCLUDES_DIR     = $(LOCAL_PATH)/syslog
