@@ -1,4 +1,4 @@
-project (96bcf744-4f72-4866-bf1d-8634fd9c65e5.plugin C)
+project (693a5d5a-0f1c-4ecf-a617-05804d5c9b0b.plugin C)
 
 set (CFG_TEE_PLUGIN_LOAD_PATH "/usr/lib/tee-supplicant/plugins/")
 set (CMAKE_SHARED_LIBRARY_PREFIX "")
