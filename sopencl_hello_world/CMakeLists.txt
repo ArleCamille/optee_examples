@@ -1,4 +1,4 @@
-project (optee_example_plugins C)
+project (optee_example_sopencl_hello_world C)
 
 set (SRC host/main.c)
 
