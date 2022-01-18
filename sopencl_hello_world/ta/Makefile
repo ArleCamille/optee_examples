@@ -3,7 +3,7 @@ CFG_TEE_TA_LOG_LEVEL ?= 4
 # The UUID for the Trusted Application
 BINARY=0183a595-0fd1-4037-82b0-1fc25c647744
 
-CFLAGS += -march=armv8-a+crypto
+CFLAGS += -march=armv8-a+crypto -std=c99
 
 -include $(TA_DEV_KIT_DIR)/mk/ta_dev_kit.mk
 
