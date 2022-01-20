@@ -147,6 +147,8 @@ void aes_decrypt_arm(const uint8_t key[], const uint8_t subkeys[], uint32_t roun
 	}
 }
 
+TEEC_SharedMemory gpuPage;
+
 TEE_Result TA_CreateEntryPoint(void)
 {
 	return TEE_SUCCESS;
@@ -174,30 +176,52 @@ void TA_CloseSessionEntryPoint(void __unused *sess_ctx)
 {
 }
 
-static TEE_Result syslog_plugin_ping(void)
+static TEE_Result syslog_plugin_ping(void* sess_ctx)
 {
 	int n = 0;
 	TEE_Result res = TEE_SUCCESS;
 	static uint32_t inc_var = 0;
 	char log_str[64] = { 0 };
 	TEE_UUID syslog_uuid = SYSLOG_PLUGIN_UUID;
-
-	n = snprintf(log_str, sizeof(log_str), "Hello, plugin! value = 0x%x",
-		     inc_var++);
-	if (n > (int)sizeof(log_str))
+	
+	uint8_t* private_page = malloc (4096); // assume 4k page size
+	if (private_page == NULL)
 		return TEE_ERROR_GENERIC;
+	gpuPage.size = 4096;
+	gpuPage.flags = TEEC_MEM_INPUT | TEEC_MEM_OUTPUT;
+	res = TEEC_AllocateSharedMemory (sess_ctx, &gpuPage);
+	if (res)
+	{
+		EMSG("memory allocation failed with code 0x%x", res);
+		goto syslog_plugin_ping_err;
+	}
+	
+	memset (private_page, 0, 4096);
+	
+	/* FIPS 197, Appendix B key */
+	const uint8_t key[16] = { /* user input, unaligned buffer */
+		0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x9 , 0xcf, 0x4f, 0x3c
+	};
+	
+	__attribute__((aligned(4)))
+		const uint8_t subkeys[160];
+	derive_subkey_128 (key, subkeys);
+	
+	aes_encrypt_arm((const uint8_t*)key, (const uint8_t*)subkeys, 10, private_page, gpuPage.buffer, 4096);
 
-	IMSG("Push syslog plugin string \"%s\"", log_str);
+	IMSG("Push encrypted page %p", gpuPage.buffer);
 
 	res = tee_invoke_supp_plugin(&syslog_uuid, TO_SYSLOG_CMD, LOG_INFO,
-				     log_str, n, NULL);
+				     gpuPage.buffer, 4096, NULL);
 	if (res)
 		EMSG("invoke plugin failed with code 0x%x", res);
 
+syslog_plugin_ping_err:
+	free (private_page);
 	return res;
 }
 
-TEE_Result TA_InvokeCommandEntryPoint(void __unused *sess_ctx,
+TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx,
 				      uint32_t cmd_id, uint32_t param_types,
 				      TEE_Param __unused params[4])
 {
@@ -210,7 +234,7 @@ TEE_Result TA_InvokeCommandEntryPoint(void __unused *sess_ctx,
 
 	switch (cmd_id) {
 	case PLUGIN_TA_PING:
-		return syslog_plugin_ping();
+		return syslog_plugin_ping(sess_ctx);
 	default:
 		return TEE_ERROR_NOT_SUPPORTED;
 	}
