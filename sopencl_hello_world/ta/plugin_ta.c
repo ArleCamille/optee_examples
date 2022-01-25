@@ -147,8 +147,6 @@ void aes_decrypt_arm(const uint8_t key[], const uint8_t subkeys[], uint32_t roun
 	}
 }
 
-TEEC_SharedMemory gpuPage;
-
 TEE_Result TA_CreateEntryPoint(void)
 {
 	return TEE_SUCCESS;
