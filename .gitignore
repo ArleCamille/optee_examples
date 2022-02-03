@@ -11,6 +11,8 @@ GTAGS
 *.o
 *.swp
 *.ta
+*.plugin
+dyn_list
 cscope.*
 out/
 hello_world/host/optee_example_hello_world
@@ -19,3 +21,4 @@ aes/host/optee_example_aes
 hotp/host/optee_example_hotp
 secure_storage/host/optee_example_secure_storage
 plugins/host/optee_example_plugins
+sopencl_hello_world/host/optee_example_plugins

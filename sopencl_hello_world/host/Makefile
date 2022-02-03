@@ -10,9 +10,11 @@ OBJS = main.o
 
 CFLAGS += -Wall -I../ta/include -I$(TEEC_EXPORT)/include -I./include
 CFLAGS += -DBINARY_PREFIX=\"TEE-EXMPL\"
+CFLAGS += -I /usr/include/CL
 
 #Add/link other required libraries here
 LDADD += -lteec -L$(TEEC_EXPORT)/lib
+LDADD += -lOpenCL
 
 BINARY = optee_example_plugins
 

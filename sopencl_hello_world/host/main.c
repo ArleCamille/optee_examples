@@ -126,7 +126,10 @@ int main(void)
 	op.params[0].memref.size = shm.size;
 	
 	if (TEEC_RegisterSharedMemory (&ctx, &shm) != TEEC_SUCCESS)
+	{
+		fprintf(stderr, "Failed to allocate shared memory\n");
 		goto main_err;
+	}
 	
 	/* Back to OpenCL... */
 	/* Enqueue OpenCL kernel */
