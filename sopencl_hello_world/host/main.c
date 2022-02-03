@@ -105,11 +105,10 @@ int main(void)
 		errx(1, "TEEC_InitializeContext failed with code %#" PRIx32,
 		     res);
 	
-	/* Allocate CL memory as shared */
+	/* Allocate a new shared memory */
 	TEEC_SharedMemory shm = {0};
 	shm.flags = TEEC_MEM_INPUT | TEEC_MEM_OUTPUT;
 	shm.size = MEM_SIZE;
-	shm.buffer = gpumem_host;
 
 	/* Open a session to the "plugin" TA */
 	res = TEEC_OpenSession(&ctx, &sess, &uuid, TEEC_LOGIN_PUBLIC, NULL,
@@ -125,15 +124,20 @@ int main(void)
 	op.params[0].memref.parent = &shm;
 	op.params[0].memref.size = shm.size;
 	
-	if (TEEC_RegisterSharedMemory (&ctx, &shm) != TEEC_SUCCESS)
+	if (TEEC_AllocateSharedMemory (&ctx, &shm) != TEEC_SUCCESS)
 	{
 		fprintf(stderr, "Failed to allocate shared memory\n");
 		goto main_err;
 	}
+	/* shm here is ALLOCATED, not REGISTERED. You MUST copy OpenCL data to shm. */
 	
 	/* Back to OpenCL... */
 	/* Enqueue OpenCL kernel */
 	ret = clEnqueueTask (command_queue, kernel, 0, NULL, NULL);
+
+	/* Copy results to the shared memory */
+	ret = clEnqueueReadBuffer (command_queue, memobj, CL_TRUE, 0,
+		MEM_SIZE * sizeof (char), shm.buffer, 0, NULL, NULL);
 	
 	/* Finish Current commands */
 	ret = clFlush (command_queue);
