@@ -13,8 +13,7 @@ CFLAGS += -DBINARY_PREFIX=\"TEE-EXMPL\"
 CFLAGS += -I /usr/include/CL
 
 #Add/link other required libraries here
-LDADD += -lteec -L$(TEEC_EXPORT)/lib
-LDADD += -lOpenCL
+LDADD += -lteec -lOpenCL -L$(TEEC_EXPORT)/lib 
 
 BINARY = optee_example_plugins
 
