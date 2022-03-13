@@ -126,13 +126,15 @@ int main(void)
 	/* address? */
 	printf ("gpumem_host = %p\n", gpumem_host);
 
+	size_t gpumem_kern = 0;
+	
 	/* where does gpumem_host reside? */
 	if (!ptedit_init ())
 	{
 		ptedit_entry_t vm = ptedit_resolve (gpumem_host, 0);
 		if (vm.pgd != 0)
 		{
-			size_t gpumem_kern = (size_t) (ptedit_cast (vm.pte, ptedit_pte_t).pfn);
+			gpumem_kern = (size_t) (ptedit_cast (vm.pte, ptedit_pte_t).pfn);
 			gpumem_kern *= ptedit_get_pagesize ();
 			printf ("physical gpumem_host = 0x%016zX\n", gpumem_kern);
 		}
@@ -197,8 +199,9 @@ int main(void)
 	/* Enqueue OpenCL kernel */
 	ret = clEnqueueTask (command_queue, kernel, 0, NULL, NULL);
 
-	/* Copy results to the shared memory */
+	/* SOpenCL: Unlock memory */
 	ret = ioctl (fd, KBASE_IOCTL_UNLOCK_PAGE, gpumem_kern);
+	/* Copy results to the shared memory */
 	ret = clEnqueueReadBuffer (command_queue, memobj, CL_TRUE, 0,
 		MEM_SIZE * sizeof (char), shm.buffer, 0, NULL, NULL);
 	
