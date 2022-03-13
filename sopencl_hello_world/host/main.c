@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <fcntl.h>
+
 
 /* OP-TEE TEE client API (built by optee_client) */
 #include <tee_client_api.h>
@@ -25,6 +27,9 @@
 
 /* PTEditor */
 #include "ptedit_header.h"
+
+/* ioctl */
+#include "mali_ioctl.h"
 
 #define SLEEP_SEC 2
 #define TA_PING_CNT 5
@@ -74,6 +79,26 @@ int main(void)
 	source_str = (char*) malloc (MAX_SOURCE_SIZE);
 	source_size = fread (source_str, 1, MAX_SOURCE_SIZE, fp);
 	fclose (fp);
+	
+	/* Mali low-level API initialization */
+	int fd;
+	fd = open ("/dev/mali0", O_RDWR);
+	if (fd < 0)
+	{
+		fprintf (stderr, "Cannot open mali low-level driver\n");
+		return -fd;
+	}
+	
+	/* handshake */
+	struct kbase_ioctl_version_check ver;
+	struct kbase_ioctl_set_flags flags;
+	ver.major = 11;
+	ver.minor = 30;
+	flags.create_flags = 0;
+	
+	ioctl (fd, KBASE_IOCTL_VERSION_CHECK, &ver);
+	ioctl (fd, KBASE_IOCTL_SET_FLAGS, &flags);
+	
 
 	/* get platform and device info */
 	ret = clGetPlatformIDs (1, &platform_id, &ret_num_platforms);
@@ -164,10 +189,16 @@ int main(void)
 	/* shm here is ALLOCATED, not REGISTERED. You MUST copy OpenCL data to shm. */
 	
 	/* Back to OpenCL... */
+	/* SOpenCL: Lock memory */
+	struct kbase_ioctl_lock_page_info addr;
+	addr.cpuaddr = gpumem_kern;
+	ret = ioctl (fd, KBASE_IOCTL_LOCK_PAGE, gpumem_kern);
+	
 	/* Enqueue OpenCL kernel */
 	ret = clEnqueueTask (command_queue, kernel, 0, NULL, NULL);
 
 	/* Copy results to the shared memory */
+	ret = ioctl (fd, KBASE_IOCTL_UNLOCK_PAGE, gpumem_kern);
 	ret = clEnqueueReadBuffer (command_queue, memobj, CL_TRUE, 0,
 		MEM_SIZE * sizeof (char), shm.buffer, 0, NULL, NULL);
 	
@@ -209,6 +240,8 @@ int main(void)
 	ret = clReleaseContext (context);
 	
 	free (source_str);
+	
+	close (fd);
 
 	return 0;
 }
