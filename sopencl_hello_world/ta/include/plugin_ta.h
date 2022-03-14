@@ -17,6 +17,8 @@
 
 /* trigger to use a plugin */
 #define PLUGIN_TA_PING 0
+#define PLUGIN_TA_ASSOCIATE 1
+#define PLUGIN_TA_DEASSOCIATE 2
 
 /*
  * Interface with syslog tee-supplicant plugin

@@ -192,6 +192,17 @@ static TEE_Result syslog_plugin_ping(void* __unused sess_ctx, void *buffer)
 	return res;
 }
 
+static TEE_Result syslog_plugin_associate (void* __unused sess_ctx, void* buffer)
+{
+	TEE_Result res = TEE_SUCCESS;
+
+	return res;
+}
+
+static TEE_Result syslog_plugin_deassociate (void* __unused sess_ctx, void *buffer)
+{
+}
+
 TEE_Result TA_InvokeCommandEntryPoint(void __unused *sess_ctx,
 				      uint32_t cmd_id, uint32_t param_types,
 				      TEE_Param params[4])
@@ -206,6 +217,10 @@ TEE_Result TA_InvokeCommandEntryPoint(void __unused *sess_ctx,
 	switch (cmd_id) {
 	case PLUGIN_TA_PING:
 		return syslog_plugin_ping(sess_ctx, params[0].memref.buffer);
+	case PLUGIN_TA_ASSOCIATE:
+		return syslog_plugin_associate (sess_ctx, params[0].memref.buffer);
+	case PLUGIN_TA_DEASSOCIATE:
+		return syslog_plugin_deassociate (sess_ctx, params[0].memref.buffer);
 	default:
 		return TEE_ERROR_NOT_SUPPORTED;
 	}
