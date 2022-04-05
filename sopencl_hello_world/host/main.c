@@ -188,10 +188,13 @@ int main(void)
 		fprintf(stderr, "Failed to allocate shared memory\n");
 		goto main_err;
 	}
+
 	/* shm here is ALLOCATED, not REGISTERED. You MUST copy OpenCL data to shm. */
 	
 	/* Back to OpenCL... */
 	/* SOpenCL: Lock memory */
+	res = TEEC_InvokeCommand (&sess, PLUGIN_TA_ASSOCIATE, &op, &err_origin);
+
 	struct kbase_ioctl_lock_page_info addr;
 	addr.cpuaddr = gpumem_kern;
 	ret = ioctl (fd, KBASE_IOCTL_LOCK_PAGE, gpumem_kern);
@@ -218,6 +221,9 @@ int main(void)
 
 	printf("Work logic: REE --> plugin TA --> syslog plugin in REE --> syslog\n");
 	printf("See the log from TEE through 'journalctl'\n\n");
+
+	op.paramTypes =
+		TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
 
 	res = TEEC_InvokeCommand(&sess, PLUGIN_TA_PING, &op,
 				 &err_origin);

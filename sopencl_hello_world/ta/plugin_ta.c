@@ -156,9 +156,13 @@ void TA_DestroyEntryPoint(void)
 {
 }
 
+const uint8_t KEY[16] = {
+		0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x9 , 0xcf, 0x4f, 0x3c
+};
+
 TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
 				    TEE_Param __maybe_unused params[4],
-				    void __maybe_unused **sess_ctx)
+				    void **sess_ctx)
 {
 	uint32_t exp_param_types =
 		TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE, TEE_PARAM_TYPE_NONE,
@@ -167,11 +171,17 @@ TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
+	// FIXME is it safe to assume TEE_Malloc as aligned(4)?
+	*sess_ctx = TEE_Malloc (4096, TEE_MALLOC_FILL_ZERO);
+	memcpy (*sess_ctx, KEY, 16);
+	derive_subkey_128 (*sess_ctx, ((*sess_ctx) + 16));
+
 	return TEE_SUCCESS;
 }
 
 void TA_CloseSessionEntryPoint(void __unused *sess_ctx)
 {
+	TEE_Free (sess_ctx);
 }
 
 static TEE_Result syslog_plugin_ping(void* __unused sess_ctx, void *buffer)
@@ -192,18 +202,31 @@ static TEE_Result syslog_plugin_ping(void* __unused sess_ctx, void *buffer)
 	return res;
 }
 
-static TEE_Result syslog_plugin_associate (void* __unused sess_ctx, void* buffer)
+static TEE_Result syslog_plugin_associate (void* sess_ctx, void* buffer)
 {
 	TEE_Result res = TEE_SUCCESS;
 
+	res = TEE_AssociateGPUMemory ((uint8_t *)sess_ctx, buffer);
+	if (res != TEE_SUCCESS)
+		return res;
+	uint8_t tmp[128];
+	aes_encrypt_arm (sess_ctx, sess_ctx + 16, 10, buffer, tmp, 128);
+	memcpy (buffer, tmp, 128);
+	return TEE_SUCCESS;
+}
+
+static TEE_Result syslog_plugin_deassociate (void* sess_ctx, void *buffer, void* key)
+{
+	TEE_Result res = TEE_SUCCESS;
+
+	uint8_t tmp[128];
+	aes_decrypt_arm (sess_ctx, sess_ctx + 16, 10, buffer, tmp, 128);
+	memcpy (buffer, tmp, 128);
+	res = TEE_DeassociateGPUMemory (buffer);
 	return res;
 }
 
-static TEE_Result syslog_plugin_deassociate (void* __unused sess_ctx, void *buffer)
-{
-}
-
-TEE_Result TA_InvokeCommandEntryPoint(void __unused *sess_ctx,
+TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx,
 				      uint32_t cmd_id, uint32_t param_types,
 				      TEE_Param params[4])
 {
