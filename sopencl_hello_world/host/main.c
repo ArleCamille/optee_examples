@@ -212,16 +212,6 @@ int main(void)
 	ret = clFlush (command_queue);
 	ret = clFinish (command_queue);
 
-	/*
-	 * TA will refer to the syslog plugin to print some log messages to REE.
-	 *
-	 * See the plugin code in the optee-client.
-	 * See the log through 'journalctl'.
-	 */
-
-	printf("Work logic: REE --> plugin TA --> syslog plugin in REE --> syslog\n");
-	printf("See the log from TEE through 'journalctl'\n\n");
-
 	op.paramTypes =
 		TEEC_PARAM_TYPES(TEEC_MEMREF_WHOLE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
 
